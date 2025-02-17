@@ -9,3 +9,5 @@ Example generated using llama.cpp with Qwen2.5 1.5b (Q8)
 Use any open ai compatible api or provider to get code completion (fill in the middle) in Netbeans IDE.
 
 Uses the code completion function and is prompted using ctrl+space. You can then select the top-most option with enter (no "ghost code")
+
+Does not provide models or backend. It's simply routing to wherever you get your tokens.
