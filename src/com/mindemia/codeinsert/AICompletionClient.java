@@ -21,11 +21,10 @@ import java.nio.charset.StandardCharsets;
 import org.openide.util.NbPreferences;
 
 public class AICompletionClient {
-    private final String API_URL = NbPreferences.forModule(AICompletionOptionsPanel.class).get("host", "");
+    private final String API_URL = NbPreferences.forModule(AICompletionOptionsPanel.class).get("host", "http://127.0.0.1:8080/v1/completions");
     private final String API_KEY = NbPreferences.forModule(AICompletionOptionsPanel.class).get("api_key", "");
     private final String MODEL = NbPreferences.forModule(AICompletionOptionsPanel.class).get("model", "gpt-4");
     private final int MAX_TOKENS = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("max_tokens", 300);
-    private final int CONTEXT_LENGTH = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("context_length", 10);
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -42,8 +41,6 @@ public class AICompletionClient {
             requestBody.put("model", MODEL);
             requestBody.put("prompt", prompt);
             requestBody.put("max_tokens", MAX_TOKENS);
-            // Assuming context length is used to limit the prompt size
-            requestBody.put("context_length", CONTEXT_LENGTH);
 
             // Convert to JSON string
             String jsonRequest = objectMapper.writeValueAsString(requestBody);
@@ -56,7 +53,7 @@ public class AICompletionClient {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            return parseResponse(response.body()); // Extracts text from JSON
+            return parseResponse(response.body());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return "/* Error fetching AI completion */";

@@ -16,10 +16,12 @@ import org.netbeans.spi.editor.completion.CompletionProvider;
 import org.netbeans.spi.editor.completion.CompletionTask;
 import org.netbeans.spi.editor.completion.support.AsyncCompletionQuery;
 import org.netbeans.spi.editor.completion.support.AsyncCompletionTask;
+import org.openide.util.NbPreferences;
 
-@MimeRegistration(mimeType = "text", service = CompletionProvider.class)
+@MimeRegistration(mimeType = "text/x-java", service = CompletionProvider.class)
 public class AICodeCompletionProvider implements CompletionProvider {
     
+    private final int CONTEXT_LENGTH = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("context_length", 10);
     private final AICompletionClient aiClient = new AICompletionClient();
 
     public AICodeCompletionProvider() {
@@ -35,7 +37,7 @@ public class AICodeCompletionProvider implements CompletionProvider {
 
             @Override
             protected void query(CompletionResultSet resultSet, Document document, int caretOffset) {
-                String prompt = CodeContextExtractor.extractPrompt(component, 10);
+                String prompt = CodeContextExtractor.extractPrompt(component, CONTEXT_LENGTH);
 
                 String aiSuggestion = aiClient.fetchSuggestion(prompt);
                 resultSet.setWaitText("Waiting for AI response.");
