@@ -12,7 +12,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 
 public class CodeContextExtractor {
-    public static String extractPrompt(JTextComponent component, int maxLines) {
+    public static String extractFimPrompt(JTextComponent component, int maxLines, String extraPrompt) {
         try {
             int caretPos = component.getCaretPosition();
             String fullText = component.getText(0, component.getDocument().getLength());
@@ -41,7 +41,8 @@ public class CodeContextExtractor {
             }
 
             // Construct FIM prompt
-            return "<|fim_prefix|>\n" + prefix +
+            return extraPrompt
+                    + "<|fim_prefix|>\n" + prefix +
                    beforeCaret + "\n" +
                    "<|fim_suffix|>\n" + afterCaret + "\n" + suffix + "\n" +
                     "<|fim_middle|>";

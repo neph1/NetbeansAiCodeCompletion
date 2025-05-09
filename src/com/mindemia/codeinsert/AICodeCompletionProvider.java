@@ -29,7 +29,6 @@ public class AICodeCompletionProvider implements CompletionProvider {
 
     @Override
     public CompletionTask createTask(int queryType, JTextComponent component) {
-        System.out.println("createTask");
         if (queryType != CompletionProvider.COMPLETION_QUERY_TYPE) {
             return null;
         }
@@ -37,9 +36,12 @@ public class AICodeCompletionProvider implements CompletionProvider {
 
             @Override
             protected void query(CompletionResultSet resultSet, Document document, int caretOffset) {
-                String prompt = CodeContextExtractor.extractPrompt(component, CONTEXT_LENGTH);
+                String prompt = CodeContextExtractor.extractFimPrompt(component, CONTEXT_LENGTH, "");
 
                 String aiSuggestion = aiClient.fetchSuggestion(prompt);
+                
+                aiSuggestion = trimRepeatedPrefix(prompt, aiSuggestion);
+                
                 resultSet.setWaitText("Waiting for AI response.");
                 resultSet.addItem(new AICodeCompletionItem(aiSuggestion, caretOffset));
                 resultSet.finish();
@@ -52,5 +54,21 @@ public class AICodeCompletionProvider implements CompletionProvider {
     public int getAutoQueryTypes(JTextComponent component, String typedText) {
         return 0;
     }
+    
+    private String trimRepeatedPrefix(String context, String aiResponse) {
+    int contextLength = context.length();
+    int responseLength = aiResponse.length();
+    int trimIndex = 0;
+
+    for (int i = 0; i < Math.min(contextLength, responseLength); i++) {
+        if (context.substring(contextLength - 1 - i).equals(aiResponse.substring(0, i + 1))) {
+            trimIndex = i + 1;
+        } else {
+            break;
+        }
+    }
+
+    return aiResponse.substring(trimIndex);
+}
 
 }

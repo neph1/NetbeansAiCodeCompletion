@@ -36,7 +36,6 @@ public class AICompletionClient {
 
     public String fetchSuggestion(String prompt) {
         try {
-            System.out.println("createTask");
             ObjectNode requestBody = objectMapper.createObjectNode();
             requestBody.put("model", MODEL);
             requestBody.put("prompt", prompt);
@@ -63,7 +62,7 @@ public class AICompletionClient {
     private String parseResponse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            return root.get("content").asText("/* No AI response */");
+            return root.get("content").asText("").strip();
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return "/* Error parsing AI response */";
