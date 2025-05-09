@@ -6,7 +6,7 @@ AI Code Completion plugin for Netbeans IDE (Like copilot, but more primivite)
 
 Example generated using llama.cpp with Qwen2.5 1.5b (Q8)
 
-Use any open ai compatible api or provider to get code completion (fill in the middle) in Netbeans IDE.
+While the plugin uses http to call any back end, its prompt and request may not suit all models or providers.
 
 Uses the code completion function and is prompted using ctrl+space. You can then select the top-most option with enter (no "ghost code")
 
