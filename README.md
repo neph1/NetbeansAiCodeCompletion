@@ -8,6 +8,8 @@ Features:
 
 (Tool usage with code insertion is wip, but not working atm)
 
+[NBM file available here](https://github.com/neph1/AiCodeCompletion/blob/main/build/com-mindemia-aicodecompletion.nbm) (unsigned): 
+
 
 ![ai_completion](https://github.com/user-attachments/assets/b6eaf6fd-9cae-4d4d-bea7-ef910d03f58c)
 
