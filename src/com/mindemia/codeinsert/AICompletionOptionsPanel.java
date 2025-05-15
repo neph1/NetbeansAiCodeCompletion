@@ -4,9 +4,9 @@
  */
 package com.mindemia.codeinsert;
 
-import java.awt.FlowLayout;
+import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import javax.swing.JButton;
+import java.util.prefs.Preferences;
 
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -16,10 +16,24 @@ import org.openide.util.NbPreferences;
 public class AICompletionOptionsPanel extends JPanel {
 
     private JTextField apiKeyField;
-    private JTextField hostField;
-    private JTextField systemPromptField;
+
+    // FIM
+    private JTextField hostFimField;
+    private JTextField modelFimField;
+    private JTextField systemPromptFimField;
+
+    // Chat
+    private JTextField hostChatField;
+    private JTextField modelChatField;
+    private JTextField systemPromptChatField;
+
+    // Instruct
+    private JTextField hostInstructField;
+    private JTextField modelInstructField;
+    private JTextField systemPromptInstructField;
+
+    // Common
     private JTextField maxTokensField;
-    private JTextField modelField;
     private JTextField contextLengthField;
 
     public AICompletionOptionsPanel() {
@@ -28,67 +42,85 @@ public class AICompletionOptionsPanel extends JPanel {
     }
 
     private void initComponents() {
-        JLabel apiKeyLabel = new JLabel("API Key:");
+        setLayout(new GridLayout(20, 1, 5, 5));
+
+        // General
+        add(new JLabel("🔐 API Key:"));
         apiKeyField = new JTextField(30);
-
-        JLabel hostKeyLabel = new JLabel("Host:");
-        hostField = new JTextField(50);
-        
-        systemPromptField = new JTextField(50);
-
-        JLabel maxTokensLabel = new JLabel("Max Tokens:");
-        maxTokensField = new JTextField(10);
-
-        JLabel modelLabel = new JLabel("Model:");
-        modelField = new JTextField(20);
-
-        JLabel contextLengthLabel = new JLabel("Context Length (lines):");
-        contextLengthField = new JTextField(10);
-        
-        
-
-        setLayout(new GridLayout(12, 1, 5, 5));
-        add(apiKeyLabel);
         add(apiKeyField);
-        add(hostKeyLabel);
-        add(hostField);
-        add(new JLabel("System prompt"));
-        add(systemPromptField);
-        add(maxTokensLabel);
-        add(maxTokensField);
-        add(modelLabel);
-        add(modelField);
-        add(contextLengthLabel);
-        add(contextLengthField);
+
+        // FIM Section
+        add(new JLabel("📌 FIM Settings:"));
+        add(labeled("Host FIM:", hostFimField = new JTextField(50)));
+        add(labeled("Model FIM:", modelFimField = new JTextField(30)));
+        add(labeled("System Prompt FIM:", systemPromptFimField = new JTextField(100)));
+
+        // Chat Section
+        add(new JLabel("💬 Chat Settings:"));
+        add(labeled("Host Chat:", hostChatField = new JTextField(50)));
+        add(labeled("Model Chat:", modelChatField = new JTextField(30)));
+        add(labeled("System Prompt Chat:", systemPromptChatField = new JTextField(100)));
+
+        // Instruct Section
+        add(new JLabel("🛠 Instruct Settings:"));
+        add(labeled("Host Instruct:", hostInstructField = new JTextField(50)));
+        add(labeled("Model Instruct:", modelInstructField = new JTextField(30)));
+        add(labeled("System Prompt Instruct:", systemPromptInstructField = new JTextField(100)));
+
+        // Common Settings
+        add(new JLabel("⚙️ Shared Settings:"));
+        add(labeled("Max Tokens:", maxTokensField = new JTextField(10)));
+        add(labeled("Context Length (lines):", contextLengthField = new JTextField(10)));
+    }
+
+    private JPanel labeled(String labelText, JTextField field) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JLabel(labelText), BorderLayout.WEST);
+        panel.add(field, BorderLayout.CENTER);
+        return panel;
     }
 
     protected void loadSettings() {
-        String apiKey = NbPreferences.forModule(AICompletionOptionsPanel.class).get("api_key", "");
-        apiKeyField.setText(apiKey);
+        Preferences prefs = NbPreferences.forModule(AICompletionOptionsPanel.class);
 
-        String hostKey = NbPreferences.forModule(AICompletionOptionsPanel.class).get("host", "http://127.0.0.1:8080/v1/completions");
-        hostField.setText(hostKey);
+        apiKeyField.setText(prefs.get("api_key", ""));
+
+        hostFimField.setText(prefs.get("host_fim", "http://127.0.0.1:8080/v1/completions"));
+        modelFimField.setText(prefs.get("model_fim", ""));
+        systemPromptFimField.setText(prefs.get("system_prompt_fim", ""));
+
+        hostChatField.setText(prefs.get("host_chat", "http://127.0.0.1:8080/v1/completions"));
+        modelChatField.setText(prefs.get("model_chat", ""));
+        systemPromptChatField.setText(prefs.get("system_prompt_chat", "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."));
+
+        hostInstructField.setText(prefs.get("host_instruct", "http://127.0.0.1:8080/v1/completions"));
+        modelInstructField.setText(prefs.get("model_instruct", ""));
+        systemPromptInstructField.setText(prefs.get("system_prompt_instruct", "You are Qwen, created by Alibaba Cloud. You are a helpful assistant. Respond only with the generated code without repeating anything the user says. Do not repeat any code supplied by the user."));
         
-        String systemPromptKey = NbPreferences.forModule(AICompletionOptionsPanel.class).get("system_prompt", "");
-        systemPromptField.setText(hostKey);
-
-        int maxTokens = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("max_tokens", 300);
-        maxTokensField.setText(String.valueOf(maxTokens));
-
-        String model = NbPreferences.forModule(AICompletionOptionsPanel.class).get("model", "gpt-4");
-        modelField.setText(model);
-
-        int contextLength = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("context_length", 10);
-        contextLengthField.setText(String.valueOf(contextLength));
+        maxTokensField.setText(String.valueOf(prefs.getInt("max_tokens", 300)));
+        contextLengthField.setText(String.valueOf(prefs.getInt("context_length", 10)));
     }
 
     protected void saveSettings() {
-        NbPreferences.forModule(AICompletionOptionsPanel.class).put("api_key", apiKeyField.getText());
-        NbPreferences.forModule(AICompletionOptionsPanel.class).put("host", hostField.getText());
-        NbPreferences.forModule(AICompletionOptionsPanel.class).put("systemPromptKey", systemPromptField.getText());
-        NbPreferences.forModule(AICompletionOptionsPanel.class).putInt("max_tokens", Integer.parseInt(maxTokensField.getText()));
-        NbPreferences.forModule(AICompletionOptionsPanel.class).put("model", modelField.getText());
-        NbPreferences.forModule(AICompletionOptionsPanel.class).putInt("context_length", Integer.parseInt(contextLengthField.getText()));
+        Preferences prefs = NbPreferences.forModule(AICompletionOptionsPanel.class);
+
+        prefs.put("api_key", apiKeyField.getText());
+
+        prefs.put("host_fim", hostFimField.getText());
+        prefs.put("model_fim", modelFimField.getText());
+        prefs.put("system_prompt_fim", systemPromptFimField.getText());
+
+        prefs.put("host_chat", hostChatField.getText());
+        prefs.put("model_chat", modelChatField.getText());
+        prefs.put("system_prompt_chat", systemPromptChatField.getText());
+
+        prefs.put("host_instruct", hostInstructField.getText());
+        prefs.put("model_instruct", modelInstructField.getText());
+        prefs.put("system_prompt_instruct", systemPromptInstructField.getText());
+
+        prefs.putInt("max_tokens", Integer.parseInt(maxTokensField.getText()));
+        prefs.putInt("context_length", Integer.parseInt(contextLengthField.getText()));
     }
 }
+
 

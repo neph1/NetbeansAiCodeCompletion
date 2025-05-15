@@ -2,12 +2,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.mindemia.codeinsert;
+package com.mindemia.codeinsert.completion;
 
 /**
  *
  * @author rickard
  */
+import com.mindemia.codeinsert.AICompletionOptionsPanel;
+import com.mindemia.codeinsert.CodeContextExtractor;
 import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
@@ -22,7 +24,8 @@ import org.openide.util.NbPreferences;
 public class AICodeCompletionProvider implements CompletionProvider {
     
     private final int CONTEXT_LENGTH = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("context_length", 10);
-    private final AICompletionClient aiClient = new AICompletionClient();
+    
+    private final AiFimClient aiClient = new AiFimClient();
 
     public AICodeCompletionProvider() {
     }
@@ -36,9 +39,9 @@ public class AICodeCompletionProvider implements CompletionProvider {
 
             @Override
             protected void query(CompletionResultSet resultSet, Document document, int caretOffset) {
-                String prompt = CodeContextExtractor.extractFimPrompt(component, CONTEXT_LENGTH, "");
+                String prompt = CodeContextExtractor.constructFimPrompt(component, CONTEXT_LENGTH, "", "");
 
-                String aiSuggestion = aiClient.fetchSuggestion(prompt);
+                String aiSuggestion = aiClient.fetchSuggestion(prompt, "");
                 
                 aiSuggestion = trimRepeatedPrefix(prompt, aiSuggestion);
                 

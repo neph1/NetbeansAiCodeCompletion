@@ -12,44 +12,79 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 
 public class CodeContextExtractor {
-    public static String extractFimPrompt(JTextComponent component, int maxLines, String extraPrompt) {
+    
+    final static String fimTemplate = """
+                               <|fim_prefix|>
+                               %s
+                               <|fim_suffix|>
+                               %s
+                               <|fim_middle|>
+                                """;
+    final static String instructTemplate = """
+                                    <|im_start|>system
+                                    %s<|im_end|>
+                                    <|im_start|>user
+                                    %s<|im_end|>
+                                    <|im_start|>assistant
+                                    """;
+    
+    public static String constructFimPrompt(JTextComponent component, int maxLines, String userPrompt, String systemPrompt) {
         try {
             int caretPos = component.getCaretPosition();
             String fullText = component.getText(0, component.getDocument().getLength());
-            String[] lines = fullText.split("\n");
 
-            int currentLineIndex = getLineIndex(fullText, caretPos);
-            
-            // Get previous lines
-            int startLine = Math.max(0, currentLineIndex - maxLines);
-            StringBuilder prefix = new StringBuilder();
-            for (int i = startLine; i < currentLineIndex; i++) {
-                prefix.append(lines[i]).append("\n");
-            }
+            String[] prefixSuffix = extractCode(fullText, caretPos, maxLines);
 
-            // Get the current line split at the caret
-            String currentLine = lines[currentLineIndex];
-            int column = caretPos - getLineStartOffset(fullText, currentLineIndex);
-            String beforeCaret = currentLine.substring(0, column);
-            String afterCaret = currentLine.substring(column);
-
-            // Get next lines
-            int endLine = Math.min(lines.length, currentLineIndex + maxLines + 1);
-            StringBuilder suffix = new StringBuilder();
-            for (int i = currentLineIndex + 1; i < endLine; i++) {
-                suffix.append(lines[i]).append("\n");
-            }
-
-            // Construct FIM prompt
-            return extraPrompt
-                    + "<|fim_prefix|>\n" + prefix +
-                   beforeCaret + "\n" +
-                   "<|fim_suffix|>\n" + afterCaret + "\n" + suffix + "\n" +
-                    "<|fim_middle|>";
+            return userPrompt + String.format(fimTemplate, prefixSuffix[0], prefixSuffix[1]);
         } catch (BadLocationException e) {
             e.printStackTrace();
             return "/* Error extracting context */";
         }
+    }
+    
+    public static String constructInstructPrompt(JTextComponent component, int maxLines, String userPrompt, String systemPrompt) {
+        try {
+            int caretPos = component.getCaretPosition();
+            String fullText = component.getText(0, component.getDocument().getLength());
+
+            String[] prefixSuffix = extractCode(fullText, caretPos, maxLines);
+            
+            
+
+            return String.format(instructTemplate, systemPrompt, userPrompt + "\n\n<code>" + prefixSuffix[0] + "/* Insert your code here */" + prefixSuffix[1] + "</code>");
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+            return "/* Error extracting context */";
+        }
+    }
+    
+    public static String[] extractCode(String fullText, int caretPos, int maxLines ) {
+        String[] lines = fullText.split("\n");
+
+        int currentLineIndex = getLineIndex(fullText, caretPos);
+        // Get the current line split at the caret
+        String currentLine = lines[currentLineIndex];
+        int column = caretPos - getLineStartOffset(fullText, currentLineIndex);
+        String beforeCaret = currentLine.substring(0, column);
+        String afterCaret = currentLine.substring(column);
+
+
+        // Get previous lines
+        int startLine = Math.max(0, currentLineIndex - maxLines);
+        StringBuilder prefix = new StringBuilder();
+        for (int i = startLine; i < currentLineIndex; i++) {
+            prefix.append(lines[i]).append("\n");
+        }
+        prefix.append(beforeCaret);
+
+        // Get next lines
+        int endLine = Math.min(lines.length, currentLineIndex + maxLines + 1);
+        StringBuilder suffix = new StringBuilder();
+        suffix.append(afterCaret).append("\n");
+        for (int i = currentLineIndex + 1; i < endLine; i++) {
+            suffix.append(lines[i]).append("\n");
+        }
+        return new String[]{prefix.toString(), suffix.toString()};
     }
 
     private static int getLineIndex(String text, int offset) {

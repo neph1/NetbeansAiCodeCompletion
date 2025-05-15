@@ -18,27 +18,39 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import org.openide.util.NbPreferences;
 
-public class AICompletionClient {
-    private final String API_URL = NbPreferences.forModule(AICompletionOptionsPanel.class).get("host", "http://127.0.0.1:8080/v1/completions");
-    private final String API_KEY = NbPreferences.forModule(AICompletionOptionsPanel.class).get("api_key", "");
-    private final String MODEL = NbPreferences.forModule(AICompletionOptionsPanel.class).get("model", "gpt-4");
-    private final int MAX_TOKENS = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("max_tokens", 300);
+public abstract class AICompletionClient {
+    private final String API_URL;
+    private final String API_KEY;
+    private final String MODEL;
+    private final int MAX_TOKENS;
+    private final String systemPrompt;
+    private final String tools;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public AICompletionClient() {
+    public AICompletionClient(String apiUrl, String apiKey, String model, int maxTokens, String systemPrompt, String tools) {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = new ObjectMapper();
+        this.API_URL = apiUrl;
+        this.API_KEY = apiKey;
+        this.MODEL = model;
+        this.MAX_TOKENS = maxTokens;
+        this.systemPrompt = systemPrompt;
+        this.tools = tools;
     }
 
-    public String fetchSuggestion(String prompt) {
+    public String fetchSuggestion(String prompt, String toolChoice) {
         try {
             ObjectNode requestBody = objectMapper.createObjectNode();
             requestBody.put("model", MODEL);
             requestBody.put("prompt", prompt);
+            requestBody.put("tools", tools);
+            if (!toolChoice.isEmpty()) {
+                requestBody.put("tool_choice", toolChoice);
+            }
+
             requestBody.put("max_tokens", MAX_TOKENS);
 
             // Convert to JSON string
@@ -60,9 +72,13 @@ public class AICompletionClient {
     }
 
     private String parseResponse(String responseBody) {
+        System.out.println("response " + responseBody);
+        if(responseBody == null || responseBody.isEmpty()) {
+            return "";
+        }
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            return root.get("content").asText("").strip();
+            return root.get("choices").get(0).get("text").asText("").strip();
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return "/* Error parsing AI response */";

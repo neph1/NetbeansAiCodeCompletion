@@ -2,25 +2,33 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.mindemia.codeinsert;
+package com.mindemia.codeinsert.instruct;
 
+import com.mindemia.codeinsert.AICompletionClient;
+import com.mindemia.codeinsert.AICompletionOptionsPanel;
+import com.mindemia.codeinsert.CodeContextExtractor;
 import java.util.Collections;
 import java.util.List;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
 import org.netbeans.spi.editor.codegen.CodeGenerator;
 import org.openide.util.Lookup;
-import com.sun.source.util.TreePath;
+import org.openide.util.NbPreferences;
 
 public class GenerateCodeInstruct implements CodeGenerator {
 
-    final TreePath path;
+    
+    private final int CONTEXT_LENGTH = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("context_length", 10);
+    private final String SYSTEM_PROMPT = NbPreferences.forModule(AICompletionOptionsPanel.class).get("system_prompt_instruct", "");
+    
     private final JTextComponent component;
+    private final AiInstructClient aiClient = new AiInstructClient();
 
     private GenerateCodeInstruct(Lookup context) {
-        path = context.lookup(TreePath.class);
         component = context.lookup(JTextComponent.class);
     }
 
@@ -45,25 +53,20 @@ public class GenerateCodeInstruct implements CodeGenerator {
 
     @Override
     public void invoke() {
-        String instruction = JOptionPane.showInputDialog("Instruction:");
-        if (instruction == null || instruction.trim().isEmpty()) return;
+        JTextArea textArea = new JTextArea(5, 20);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+
+        int option = JOptionPane.showConfirmDialog(null, scrollPane, "Instruction", JOptionPane.OK_CANCEL_OPTION);
+        
+        String instruction = textArea.getText();
+        if (option == JOptionPane.CANCEL_OPTION || instruction == null || instruction.trim().isEmpty()) return;
 
         int caret = component.getCaretPosition();
 
         try {
-            String text = component.getText(0, component.getDocument().getLength());
-            String prefix = text.substring(0, caret);
-            String suffix = text.substring(caret);
-
-            String fimPrompt = instruction + "\n"
-                    + "<|fim_prefix|>\n" + prefix + "\n" +
-                   "<|fim_suffix|>\n" + suffix + "\n" +
-                    "<|fim_middle|>";
-
-            // Async call to AI
+            String prompt = CodeContextExtractor.constructInstructPrompt(component, caret, instruction, SYSTEM_PROMPT);
             new Thread(() -> {
-                String result = new AICompletionClient().fetchSuggestion(fimPrompt);
-
+                String result = aiClient.fetchSuggestion(prompt, "");
                 if (result != null && !result.isEmpty()) {
                     SwingUtilities.invokeLater(() -> {
                         try {
