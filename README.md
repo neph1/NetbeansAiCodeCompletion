@@ -10,14 +10,16 @@ Features:
 
 [NBM file available here](https://github.com/neph1/AiCodeCompletion/blob/main/build/com-mindemia-aicodecompletion.nbm) (unsigned): 
 
+Fill-in-the-middle example generated using llama.cpp with Qwen2.5 1.5b (Q8)
 
 ![ai_completion](https://github.com/user-attachments/assets/b6eaf6fd-9cae-4d4d-bea7-ef910d03f58c)
 
-Example generated using llama.cpp with Qwen2.5 1.5b (Q8)
 
-![image](https://github.com/user-attachments/assets/fbc1f7a0-62fa-497d-88b8-aa55fe23eb5a)
+Chat example generated using llama.cpp with Qwen2.5 8b
 
-Example generated using llama.cpp with Qwen2.5 8b
+![image](https://github.com/user-attachments/assets/07585c8a-9566-4f0f-b2a3-b14375978e45)
+
+
 
 While the plugin uses http to call any back end, its prompt and request may not suit all models or providers.
 
