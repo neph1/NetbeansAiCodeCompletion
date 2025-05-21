@@ -6,16 +6,15 @@ package com.mindemia.codeinsert.chat;
 
 import com.mindemia.codeinsert.AICompletionClient;
 import com.mindemia.codeinsert.AICompletionOptionsPanel;
-import com.mindemia.codeinsert.CodeContextExtractor;
+import com.mindemia.codeinsert.OpenFileContextCollector;
 import com.mindemia.codeinsert.tools.EditorUtils;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
-import org.openide.util.NbPreferences;
+import org.openide.util.*;
 
 /**
  *
@@ -99,13 +98,33 @@ public class AiChatClient extends AICompletionClient {
 
     private String constructChatPrompt(JTextComponent code, String userPrompt) {
         StringBuilder builder = new StringBuilder();
+        
+        if(code != null) {
+            StringBuilder snippetsBuilder = new StringBuilder();
+            try {
+                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code);
+                
+                
+                for(String s: snippets) {
+                    snippetsBuilder.append(s);
+                }
+            } catch (IOException ex) {
+                Exceptions.printStackTrace(ex);
+            }            
+            if(!snippetsBuilder.isEmpty()) {
+                builder.append(String.format("<snippets>%s</snippets>\n", snippetsBuilder.toString()));
+            }
+            String allCode = code.getText();
+            builder.append(String.format("<code>%s</code>\n", allCode.split("package")[1]));
+
+        }
+        
         for(String s: history) {
             builder.append(s);
         }
-        if(code != null) {
-            userPrompt = String.format("<code>%s</code>\n", code.getText()) + userPrompt;
-        }
+        
         builder.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt));
+        System.out.println("prompt: " + builder.toString());
         return builder.toString();
     }
 

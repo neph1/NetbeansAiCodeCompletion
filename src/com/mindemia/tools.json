@@ -1,0 +1,25 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "insert_code",
+            "description": "Inserts Java code into the document for the user",
+            "parameters":{
+                "imports": ["required imports"],
+                "methods": [
+                {
+                    "modifier": "public/protected/private",
+                    "name": "name of method",
+                    "params": [{
+                    "name": "parameter name",
+                    "type": "type of parameter, ie String, int, etc"
+                    }],
+                    "body": "code",
+                    "returnType": "void",
+                    "throws": []
+                }
+            ]
+            }
+        }
+    }
+]

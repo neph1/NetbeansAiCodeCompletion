@@ -4,6 +4,7 @@
  */
 package com.mindemia.codeinsert.tools;
 
+import java.util.List;
 import java.util.Optional;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.EditorRegistry;
@@ -16,5 +17,9 @@ public class EditorUtils {
     public static Optional<JTextComponent> getActiveTextComponent() {
         JTextComponent comp = EditorRegistry.lastFocusedComponent();
         return Optional.ofNullable(comp);
+    }
+    
+    public static List<? extends JTextComponent> getOpenTextComponents() {
+        return EditorRegistry.componentList();
     }
 }

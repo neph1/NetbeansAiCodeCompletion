@@ -3,6 +3,8 @@ package com.mindemia.codeinsert.chat;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -35,8 +37,9 @@ public class AIChatTopComponent extends TopComponent {
     private final JTextArea inputArea = new JTextArea();
     private final AiChatClient aiChatClient = new AiChatClient();
     
-    private final String aiPlaceholder = "AI: ...";
     private final String lineBreak = "\n";
+    
+    private List<ChatMessage> chatHistory = new ArrayList<>();
 
     public AIChatTopComponent() {
         setName("AI Chat");
@@ -62,7 +65,9 @@ public class AIChatTopComponent extends TopComponent {
         inputArea.getActionMap().put("sendMessage", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                append("User: " + inputArea.getText());
+                String prompt = inputArea.getText();
+                append("User: " + prompt);
+                chatHistory.add(new ChatMessage(ChatMessage.Role.USER, prompt));
                 callAI(inputArea.getText());
                 inputArea.setText("");
             }
@@ -82,34 +87,20 @@ public class AIChatTopComponent extends TopComponent {
     }
 
     private void callAI(String prompt) {
-        // Optional: Show loading feedback
-        append(aiPlaceholder);
-
         new Thread(() -> {
-            // Reuse same API client
-            String reply = aiChatClient.fetchSuggestion(prompt);
+            String response = aiChatClient.fetchSuggestion(prompt);
             SwingUtilities.invokeLater(() -> {
-                removeLastAIPlaceholder();
                 try {
-                    tryRenderMessage("AI: " + reply);
+                    tryRenderMessage("AI: " + response);
                 } catch (BadLocationException ex) {
-                    append("AI: " + reply);
+                    append("AI: " + response);
                 }
             });
+            
+            chatHistory.add(new ChatMessage(ChatMessage.Role.ASSISTANT, response));
         }).start();
     }
 
-    private void removeLastAIPlaceholder() {
-        try {
-            String text = chatArea.getText();
-            int index = text.lastIndexOf(aiPlaceholder + lineBreak);
-            if (index >= 0) {
-                chatArea.select(index, text.length());
-                chatArea.replaceSelection(text);
-            }
-        } catch (Exception ignored) {}
-    }
-    
     private void tryRenderMessage(String text) throws BadLocationException {
         StyledDocument document = (StyledDocument) chatArea.getDocument();
         boolean inCodeBlock = false;
