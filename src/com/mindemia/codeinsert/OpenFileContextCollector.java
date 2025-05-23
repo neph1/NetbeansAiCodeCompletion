@@ -45,16 +45,16 @@ public class OpenFileContextCollector {
         }
         FileObject currentFile = NbEditorUtilities.getFileObject(currentComponent.getDocument());
 
-        Set<String> imports = new HashSet<>();
-        String currentPackage = getCurrentPackageAndImports(currentSource, imports);
-
         currentSource.runUserActionTask(controller -> {
             controller.toPhase(JavaSource.Phase.ELEMENTS_RESOLVED);
+            
 
             CompilationUnitTree cut = controller.getCompilationUnit();
+            String currentPackage = cut.getPackageName().toString();
             Elements elements = controller.getElements();
             
-            // This is for classes in same package 
+            var imports2 = cut.getImports();
+            // Classes in same package 
 
             PackageElement pkg = elements.getPackageElement(currentPackage);
             for (Element e : pkg.getEnclosedElements()) {
@@ -62,28 +62,30 @@ public class OpenFileContextCollector {
                 if ((!currentFile.getName().equals(e.getSimpleName().toString()) && (e.getKind().isClass()) || e.getKind().isInterface())) {
                     FileObject fileObject = SourceUtils.getFile(ElementHandle.create((TypeElement) e), controller.getClasspathInfo());
                     if (fileObject != null) {
-                        contextSnippets.addAll(getContents(getDocument(fileObject), currentPackage, imports));
+                        contextSnippets.addAll(getContents(getDocument(fileObject)));
 
                     }
                 }
             }
             
-            // This is for imported classes
+            // Imported classes
 
-            var imports2 = cut.getImports();
 
             for (ImportTree importTree : imports2) {
                 String fqn = importTree.getQualifiedIdentifier().toString();
-
                 TypeElement type = elements.getTypeElement(fqn);
                 if (type != null) {
-                    ElementHandle<TypeElement> handle = ElementHandle.create(type);
-
-                    for (FileObject curRoot : GlobalPathRegistry.getDefault().getSourceRoots()) {
-                        FileObject fileObject = curRoot.getFileObject(controller.getClasspathInfo().toString());
-                        if (fileObject != null) {
-                            contextSnippets.addAll(getContents(getDocument(fileObject), currentPackage, imports));
+                    FileObject fileObject = SourceUtils.getFile(ElementHandle.create(type), controller.getClasspathInfo());
+                    
+                    if (fileObject == null) {
+                        for (FileObject curRoot : GlobalPathRegistry.getDefault().getSourceRoots()) {
+                            fileObject = curRoot.getFileObject(controller.getClasspathInfo().toString());
+                            break;
                         }
+                    }
+                    
+                    if (fileObject != null) {
+                        contextSnippets.addAll(getContents(getDocument(fileObject)));
                     }
                 }
             }
@@ -101,30 +103,7 @@ public class OpenFileContextCollector {
         return null;
     }
 
-    private static String getCurrentPackageAndImports(JavaSource source, Set<String> importsOut) {
-        final String[] pkgHolder = new String[1];
-
-        try {
-            source.runUserActionTask(controller -> {
-                controller.toPhase(JavaSource.Phase.ELEMENTS_RESOLVED);
-                CompilationUnitTree cu = controller.getCompilationUnit();
-                if (cu.getPackageName() != null) {
-                    pkgHolder[0] = cu.getPackageName().toString();
-                }
-
-                cu.getImports().forEach(imp -> {
-                    importsOut.add(imp.getQualifiedIdentifier().toString());
-                });
-
-            }, true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return pkgHolder[0] != null ? pkgHolder[0] : "";
-    }
-
-    private static List<String> getContents(Document document, String currentPackage, Set<String> imports) throws IOException {
+    private static List<String> getContents(Document document) throws IOException {
         List<String> contextSnippets = new ArrayList<>();
         JavaSource javaSource = JavaSource.forDocument(document);
         if (javaSource == null) {
@@ -138,15 +117,9 @@ public class OpenFileContextCollector {
                 return;
             }
 
-            String filePackage = cu.getPackageName() != null ? cu.getPackageName().toString() : "";
 
-            boolean samePackage = filePackage.equals(currentPackage);
-            boolean explicitlyImported = cu.getImports().stream()
-                    .anyMatch(imp -> imports.contains(imp.getQualifiedIdentifier().toString()));
+            contextSnippets.addAll(extractContent(cu));
 
-            if (samePackage || explicitlyImported) {
-                contextSnippets.addAll(extractContent(cu));
-            }
         }, true);
         return contextSnippets;
     }
@@ -168,11 +141,6 @@ public class OpenFileContextCollector {
                                         .map(p -> p.getType().toString() + " " + p.getName())
                                         .toList()));
                         builder.append(");\n");
-                    } else if (member instanceof VariableTree vt) {
-                        builder.append("  ")
-                                .append(vt.getModifiers()).append(" ")
-                                .append(vt.getType()).append(" ")
-                                .append(vt.getName()).append(";\n");
                     }
                 }
                 builder.append("}\n");
