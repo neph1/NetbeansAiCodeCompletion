@@ -78,7 +78,7 @@ public abstract class AICompletionClient {
         }
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            return root.get("content").asText("").strip();
+            return root.get("choices").get(0).get("text").asText("").strip();
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return "/* Error parsing AI response */";

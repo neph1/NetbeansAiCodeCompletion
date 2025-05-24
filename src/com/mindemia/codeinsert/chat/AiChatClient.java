@@ -57,7 +57,7 @@ public class AiChatClient extends AICompletionClient {
                                  """;
     
     private static final String toolChoice = """
-                                             tool_choice={
+                                             {
                                                  "type": "function",
                                                  "function": {"name": "insert_code"}
                                              }
