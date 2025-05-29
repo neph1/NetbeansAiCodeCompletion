@@ -11,7 +11,9 @@ package com.mindemia.codeinsert;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -43,13 +45,20 @@ public abstract class AICompletionClient {
 
     public String fetchSuggestion(String prompt, String toolChoice) {
         try {
+            ArrayNode messages = objectMapper.createArrayNode();
+            ObjectNode message = objectMapper.createObjectNode();
+            message.put("role", "user");
+            message.put("content", prompt);
+            messages.add(message);
+            
             ObjectNode requestBody = objectMapper.createObjectNode();
             requestBody.put("model", MODEL);
-            requestBody.put("prompt", prompt);
-            requestBody.put("tools", tools);
-            if (!toolChoice.isEmpty()) {
-                requestBody.put("tool_choice", toolChoice);
-            }
+            //requestBody.put("prompt", prompt);
+            requestBody.put("messages", messages);
+//            requestBody.put("tools", tools);
+//            if (!toolChoice.isEmpty()) {
+//                requestBody.put("tool_choice", toolChoice);
+//            }
 
             requestBody.put("max_tokens", MAX_TOKENS);
 
@@ -63,7 +72,6 @@ public abstract class AICompletionClient {
                     .POST(HttpRequest.BodyPublishers.ofString(jsonRequest, StandardCharsets.UTF_8))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
             return parseResponse(response.body());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -78,7 +86,24 @@ public abstract class AICompletionClient {
         }
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            return root.get("choices").get(0).get("text").asText("").strip();
+            JsonNode choices = root.get("choices");
+            if(choices.size() < 1) {
+                System.out.println("choices are empty ");
+                return "/* AI response empty */";
+            }
+            var message = choices.get(0).get("message");
+            if(message != null) {
+                if (message.get("tool_calls") != null) {
+                    System.out.println("tool_calls " + message.get("tool_calls"));
+                }
+                if (message.get("content") != null) {
+                    return message.get("content").asText("").strip();
+                }
+            }
+            if(choices.get(0).get("text") != null) {
+                return choices.get(0).get("text").asText("").strip();
+            }
+            return "/* AI response empty */";
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             return "/* Error parsing AI response */";

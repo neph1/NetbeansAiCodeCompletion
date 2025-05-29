@@ -4,6 +4,8 @@
  */
 package com.mindemia.codeinsert.chat;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.mindemia.codeinsert.AICompletionClient;
 import com.mindemia.codeinsert.AICompletionOptionsPanel;
 import com.mindemia.codeinsert.OpenFileContextCollector;
@@ -72,7 +74,7 @@ public class AiChatClient extends AICompletionClient {
                                   %s<|im_end|>
                                   <|im_start|>assistant
                                   """;
-
+    
     final static String singleUser = """
                                   <|im_start|>user
                                   %s<|im_end|>
@@ -123,9 +125,9 @@ public class AiChatClient extends AICompletionClient {
             builder.append(s);
         }
         
-        builder.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt));
-        System.out.println("prompt: " + builder.toString());
-        return builder.toString();
+        return builder.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt)).toString();
+        //System.out.println("prompt: " + userPrompt);
+        //return userPrompt;
     }
 
     private void extractJson(String text) {
