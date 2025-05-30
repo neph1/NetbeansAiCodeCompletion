@@ -6,11 +6,13 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -40,7 +42,13 @@ public class AIChatTopComponent extends TopComponent {
     private final String lineBreak = "\n";
     
     private List<ChatMessage> chatHistory = new ArrayList<>();
-
+    
+    private final Color backgroundColor = UIManager.getColor("EditorPane.background");
+    private final Color foregroundColor = UIManager.getColor("EditorPane.foreground");
+    
+    private final String userPrompt = "User: ";
+    private final String aiPrompt = "Assistant: ";
+    
     public AIChatTopComponent() {
         setName("AI Chat");
         setLayout(new BorderLayout());
@@ -66,10 +74,13 @@ public class AIChatTopComponent extends TopComponent {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String prompt = inputArea.getText();
-                append("User: " + prompt);
+                append(userPrompt + prompt, backgroundColor);
                 chatHistory.add(new ChatMessage(ChatMessage.Role.USER, prompt));
                 callAI(inputArea.getText());
                 inputArea.setText("");
+
+                JScrollBar vertical = scrollPane.getVerticalScrollBar();
+                vertical.setValue( vertical.getMaximum() );
             }
         });
 
@@ -77,10 +88,13 @@ public class AIChatTopComponent extends TopComponent {
         add(inputScrollPane, BorderLayout.SOUTH);
     }
 
-    private void append(String text) {
+    private void append(String text, Color background) {
+        
+        SimpleAttributeSet textAttr = new SimpleAttributeSet();
+        StyleConstants.setBackground(textAttr, background);
         StyledDocument document = (StyledDocument) chatArea.getDocument();
         try {
-            document.insertString(document.getLength(), text + lineBreak, null);
+            document.insertString(document.getLength(), text + lineBreak, textAttr);
         } catch (BadLocationException ex) {
             Exceptions.printStackTrace(ex);
         }
@@ -91,9 +105,9 @@ public class AIChatTopComponent extends TopComponent {
             String response = aiChatClient.fetchSuggestion(prompt);
             SwingUtilities.invokeLater(() -> {
                 try {
-                    tryRenderMessage("AI: " + response);
+                    tryRenderMessage(aiPrompt + response);
                 } catch (BadLocationException ex) {
-                    append("AI: " + response);
+                    append(aiPrompt + response, backgroundColor.darker());
                 }
             });
             
@@ -115,10 +129,13 @@ public class AIChatTopComponent extends TopComponent {
             if (inCodeBlock) {
                 SimpleAttributeSet codeAttr = new SimpleAttributeSet();
                 StyleConstants.setFontFamily(codeAttr, "Monospaced");
-                StyleConstants.setBackground(codeAttr, new Color(240, 240, 240));
+                StyleConstants.setBackground(codeAttr, backgroundColor.brighter());
                 document.insertString(document.getLength(), line + "\n", codeAttr);
             } else {
-                document.insertString(document.getLength(), line + "\n", null);
+                
+                SimpleAttributeSet textAttr = new SimpleAttributeSet();
+                StyleConstants.setBackground(textAttr, backgroundColor.darker());
+                document.insertString(document.getLength(), line + "\n", textAttr);
             }
         }
     }
