@@ -8,7 +8,7 @@ Features:
 
 (Tool usage with code insertion is wip, but not working atm)
 
-[NBM file available here](https://github.com/neph1/AiCodeCompletion/blob/main/build/com-mindemia-aicodecompletion.nbm) (unsigned): 
+[NBM file available here]([https://github.com/neph1/AiCodeCompletion/blob/main/build/com-mindemia-aicodecompletion.nbm](https://github.com/neph1/NetbeansAiCodeCompletion/blob/main/com-mindemia-aicodecompletion.nbm)) (unsigned): 
 
 Fill-in-the-middle example generated using llama.cpp with Qwen2.5 1.5b (Q8)
 
