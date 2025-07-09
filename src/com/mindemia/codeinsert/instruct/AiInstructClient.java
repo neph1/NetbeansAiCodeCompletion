@@ -36,7 +36,7 @@ public class AiInstructClient extends AICompletionClient{
 
     
     public AiInstructClient() {
-        super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, "");
+        super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, null);
     }
     
     public String fetchSuggestion(String prompt) {

@@ -20,9 +20,8 @@ public class AiFimClient extends AICompletionClient{
     private static final int MAX_TOKENS = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("max_tokens", 300);
     private static final String SYSTEM_PROMPT = NbPreferences.forModule(AICompletionOptionsPanel.class).get("system_prompt_fim", "");
 
-    
     public AiFimClient() {
-        super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, "");
+        super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, null);
     }
     
 }

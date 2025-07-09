@@ -4,6 +4,8 @@
  */
 package com.mindemia.codeinsert.tools;
 
+import com.mindemia.codeinsert.data.Method;
+import com.mindemia.codeinsert.data.Parameter;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
@@ -29,7 +31,7 @@ import org.netbeans.api.java.source.WorkingCopy;
  */
 public class GenerateMethodTask {
 
-    public static void insertGeneratedMethods(JTextComponent textComponent, List<MethodSpec> methods) throws IOException {
+    public static void insertGeneratedMethods(JTextComponent textComponent, List<Method> methods) throws IOException {
         JavaSource javaSource = JavaSource.forDocument(textComponent.getDocument());
 
         if (javaSource == null) {
@@ -52,13 +54,13 @@ public class GenerateMethodTask {
             TreeMaker make = wc.getTreeMaker();
             GeneratorUtilities gu = GeneratorUtilities.get(wc);
 
-            for (MethodSpec spec : methods) {
+            for (Method spec : methods) {
                 Set<Modifier> modifiers = parseModifiers(spec.modifier());
                 ModifiersTree modTree = make.Modifiers(modifiers);
 
                 List<VariableTree> params = new ArrayList<>();
                 if (spec.params() != null) {
-                    for (ParameterSpec param : spec.params()) {
+                    for (Parameter param : spec.params()) {
                         params.add(make.Variable(make.Modifiers(Collections.emptySet()), param.name(), make.Identifier(param.type()), null));
                     }
                 }

@@ -14,12 +14,14 @@ import javax.swing.text.JTextComponent;
 public class CodeContextExtractor {
     
     final static String fimTemplate = """
-                               <|fim_prefix|>
-                               %s
-                               <|fim_suffix|>
-                               %s
-                               <|fim_middle|>
-                                """;
+                                <|im_start|>system
+                                %s<|im_end|>
+                                <|fim_prefix|>
+                                %s
+                                <|fim_suffix|>
+                                %s
+                                <|fim_middle|>
+                                 """;
     final static String instructTemplate = """
                                     <|im_start|>system
                                     %s<|im_end|>
@@ -35,7 +37,7 @@ public class CodeContextExtractor {
 
             String[] prefixSuffix = extractCode(fullText, caretPos, maxLines);
 
-            return userPrompt + String.format(fimTemplate, prefixSuffix[0], prefixSuffix[1]);
+            return userPrompt + String.format(fimTemplate, systemPrompt, prefixSuffix[0], prefixSuffix[1]);
         } catch (BadLocationException e) {
             e.printStackTrace();
             return "/* Error extracting context */";
@@ -65,8 +67,8 @@ public class CodeContextExtractor {
         // Get the current line split at the caret
         String currentLine = lines[currentLineIndex];
         int column = caretPos - getLineStartOffset(fullText, currentLineIndex);
-        String beforeCaret = currentLine.substring(0, column);
-        String afterCaret = currentLine.substring(column);
+        String beforeCaret = column > 0 ? currentLine.substring(0, column) : "";
+        String afterCaret = column > caretPos ? currentLine.substring(column) : "";
 
 
         // Get previous lines

@@ -66,8 +66,6 @@ public class OpenFileContextCollector {
             }
             
             // Imported classes
-
-
             for (ImportTree importTree : imports2) {
                 String fqn = importTree.getQualifiedIdentifier().toString();
                 TypeElement type = elements.getTypeElement(fqn);

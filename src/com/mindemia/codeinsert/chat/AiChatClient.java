@@ -4,18 +4,24 @@
  */
 package com.mindemia.codeinsert.chat;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.mindemia.codeinsert.AICompletionClient;
 import com.mindemia.codeinsert.AICompletionOptionsPanel;
 import com.mindemia.codeinsert.OpenFileContextCollector;
 import com.mindemia.codeinsert.tools.EditorUtils;
+import com.mindemia.codeinsert.tools.ToolJsonBuilder;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
+import java.util.Map;
 import java.util.regex.Pattern;
+import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
+import org.netbeans.api.project.FileOwnerQuery;
+import org.netbeans.api.project.Project;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.*;
 
 /**
@@ -31,13 +37,12 @@ public class AiChatClient extends AICompletionClient {
     private static final String SYSTEM_PROMPT = NbPreferences.forModule(AICompletionOptionsPanel.class).get("system_prompt_chat", "");
     
     private static final String tools = """
-                                 [
                                      {
                                          "type": "function",
                                          "function": {
                                              "name": "insert_code",
                                              "description": "Inserts Java code into the document for the user",
-                                             "parameters":{
+                                             "arguments":{
                                                  "imports": ["required imports"],
                                                  "methods": [
                                                  {
@@ -55,7 +60,6 @@ public class AiChatClient extends AICompletionClient {
                                              }
                                          }
                                      }
-                                 ]
                                  """;
     
     private static final String toolChoice = """
@@ -84,21 +88,26 @@ public class AiChatClient extends AICompletionClient {
                                   %s<|im_end|>
                                   """;
 
-    private List<String> history = new ArrayList<>();
-
+    private Map<String, List<String>> history = new HashMap<>();
+    
+    
     public AiChatClient() {
-        super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, tools);
+        super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, new ToolJsonBuilder().createToolsTemplate());
     }
 
-    public String fetchSuggestion(String prompt) {
-        history.add(String.format(singleUser, prompt));
-        final String response = super.fetchSuggestion(constructChatPrompt(EditorUtils.getActiveTextComponent().orElse(null), prompt), toolChoice);
-        extractJson(response);
-        history.add(String.format(singleAssistant, response));
+    public String fetchSuggestion(String selectedTab, String prompt) {
+        var list = history.getOrDefault(selectedTab, new ArrayList<>());
+        list.add(String.format(singleUser, prompt));
+        history.put(selectedTab, list);
+        JTextComponent focusedComponent = EditorUtils.getActiveTextComponent().orElse(null);
+        
+        final String response = super.fetchSuggestion(constructChatPrompt(selectedTab, focusedComponent, prompt), toolChoice);
+        list.add(String.format(singleAssistant, response));
+        history.put(selectedTab, list);
         return response;
     }
 
-    private String constructChatPrompt(JTextComponent code, String userPrompt) {
+    private String constructChatPrompt(String selectedTab, JTextComponent code, String userPrompt) {
         StringBuilder builder = new StringBuilder();
         
         if(code != null) {
@@ -121,7 +130,7 @@ public class AiChatClient extends AICompletionClient {
 
         }
         
-        for(String s: history) {
+        for(String s: history.get(selectedTab)) {
             builder.append(s);
         }
         
@@ -130,11 +139,4 @@ public class AiChatClient extends AICompletionClient {
         //return userPrompt;
     }
 
-    private void extractJson(String text) {
-        Matcher matcher = pattern.matcher(text);
-        if (matcher.find()) {
-            String json = matcher.group(1);
-            System.out.println("found json " + json);
-        }
-    }
 }
