@@ -22,6 +22,16 @@ public class CodeContextExtractor {
                                 %s
                                 <|fim_middle|>
                                  """;
+    
+        final static String fimTemplateMistral = """
+                                <|im_start|>system
+                                %s<|im_end|>
+                                <|fim_prefix|>
+                                %s
+                                <|fim_suffix|>
+                                %s
+                                <|fim_middle|>
+                                 """;
     final static String instructTemplate = """
                                     <|im_start|>system
                                     %s<|im_end|>

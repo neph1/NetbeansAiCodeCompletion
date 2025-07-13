@@ -6,6 +6,7 @@ package com.mindemia.codeinsert.completion;
 
 import com.mindemia.codeinsert.AICompletionOptionsPanel;
 import com.mindemia.codeinsert.CodeContextExtractor;
+import static com.mindemia.codeinsert.CodeContextExtractor.extractCode;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.text.JTextComponent;
@@ -49,10 +50,11 @@ public final class TriggerAISuggestionAction implements ActionListener {
             return;
         }
         int caretOffset = textComponent.getCaretPosition();
-        String prompt = CodeContextExtractor.constructFimPrompt(textComponent, CONTEXT_LENGTH, "", "");
+        
+        String[] prefixSuffix = extractCode(textComponent.getText(), caretOffset, CONTEXT_LENGTH);
 
-        String suggestion = new AiFimClient().fetchSuggestion(prompt, null);
-        suggestion = AICodeCompletionProvider.trimRepeatedPrefix(prompt, suggestion);
+        String suggestion = new AiFimClient().fetchSuggestion(prefixSuffix[0], null, prefixSuffix[1]);
+        suggestion = AICodeCompletionProvider.trimRepeatedPrefix(prefixSuffix[0], suggestion);
 
         AIPopupPanel.showSuggestionPopup(textComponent, caretOffset, suggestion);
     }

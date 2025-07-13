@@ -11,7 +11,6 @@ package com.mindemia.codeinsert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,9 +26,9 @@ public abstract class AICompletionClient {
     private final String systemPrompt;
     private final ArrayNode tools;
 
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
-    private final ResponseParser responseParser;
+    public final HttpClient httpClient;
+    public final ObjectMapper objectMapper;
+    public final ResponseParser responseParser;
 
     public AICompletionClient(String apiUrl, String apiKey, String model, int maxTokens, String systemPrompt, ArrayNode tools) {
         this.httpClient = HttpClient.newHttpClient();

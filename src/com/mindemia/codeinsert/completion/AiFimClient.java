@@ -4,8 +4,16 @@
  */
 package com.mindemia.codeinsert.completion;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mindemia.codeinsert.AICompletionClient;
 import com.mindemia.codeinsert.AICompletionOptionsPanel;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import org.openide.util.NbPreferences;
 
 /**
@@ -23,5 +31,36 @@ public class AiFimClient extends AICompletionClient{
     public AiFimClient() {
         super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, null);
     }
-    
+        
+    public String fetchSuggestion(String prompt, String toolChoice, String suffix) {
+        
+        try {
+            ArrayNode messages = objectMapper.createArrayNode();
+            ObjectNode data = objectMapper.createObjectNode();
+            
+            ObjectNode requestBody = objectMapper.createObjectNode();
+            
+            requestBody.put("prompt", prompt);
+            requestBody.put("temperature", 0);
+            requestBody.put("suffix", suffix);
+            requestBody.put("stop", "[\"\\n\\n\"]");
+            requestBody.put("max_tokens", 300);
+            requestBody.put("model", MODEL);
+           
+            // Convert to JSON string
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(API_URL))
+                    .header("Authorization", "Bearer " + API_KEY)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonRequest, StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return responseParser.parseResponse(response.body());
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return "/* Error fetching AI completion */";
+        }
+    }
 }
