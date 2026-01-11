@@ -9,19 +9,15 @@ import com.mindemia.codeinsert.AICompletionOptionsPanel;
 import com.mindemia.codeinsert.OpenFileContextCollector;
 import com.mindemia.codeinsert.tools.EditorUtils;
 import com.mindemia.codeinsert.tools.ToolJsonBuilder;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
-import org.netbeans.api.project.FileOwnerQuery;
-import org.netbeans.api.project.Project;
-import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
 import org.openide.util.*;
 
 /**
@@ -35,7 +31,7 @@ public class AiChatClient extends AICompletionClient {
     private static final String MODEL = NbPreferences.forModule(AICompletionOptionsPanel.class).get("model_chat", "gpt-4");
     private static final int MAX_TOKENS = NbPreferences.forModule(AICompletionOptionsPanel.class).getInt("max_tokens", 300);
     private static final String SYSTEM_PROMPT = NbPreferences.forModule(AICompletionOptionsPanel.class).get("system_prompt_chat", "");
-    
+
     private static final String tools = """
                                      {
                                          "type": "function",
@@ -61,7 +57,7 @@ public class AiChatClient extends AICompletionClient {
                                          }
                                      }
                                  """;
-    
+
     private static final String toolChoice = """
                                              {
                                                  "type": "function",
@@ -78,7 +74,7 @@ public class AiChatClient extends AICompletionClient {
                                   %s<|im_end|>
                                   <|im_start|>assistant
                                   """;
-    
+
     final static String singleUser = """
                                   <|im_start|>user
                                   %s<|im_end|>
@@ -89,8 +85,7 @@ public class AiChatClient extends AICompletionClient {
                                   """;
 
     private Map<String, List<String>> history = new HashMap<>();
-    
-    
+
     public AiChatClient() {
         super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, new ToolJsonBuilder().createToolsTemplate());
     }
@@ -100,7 +95,7 @@ public class AiChatClient extends AICompletionClient {
         list.add(String.format(singleUser, prompt));
         history.put(selectedTab, list);
         JTextComponent focusedComponent = EditorUtils.getActiveTextComponent().orElse(null);
-        
+
         final String response = super.fetchSuggestion(constructChatPrompt(selectedTab, focusedComponent, prompt), toolChoice);
         list.add(String.format(singleAssistant, response));
         history.put(selectedTab, list);
@@ -109,35 +104,39 @@ public class AiChatClient extends AICompletionClient {
 
     private String constructChatPrompt(String selectedTab, JTextComponent code, String userPrompt) {
         StringBuilder builder = new StringBuilder();
-        
-        if(code != null) {
+        try {
+            String repository = new String(Files.readAllBytes(Paths.get("repository.md")));
+            builder.append(String.format("<repository>%s</repository>\n", repository));
+        } catch (IOException ex) {
+            Exceptions.printStackTrace(ex);
+        }
+        if (code != null) {
             StringBuilder snippetsBuilder = new StringBuilder();
             try {
                 List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code);
-                
-                
-                for(String s: snippets) {
+
+                for (String s : snippets) {
                     snippetsBuilder.append(s);
                 }
             } catch (IOException ex) {
                 Exceptions.printStackTrace(ex);
-            }            
-            if(!snippetsBuilder.isEmpty()) {
+            }
+            if (!snippetsBuilder.isEmpty()) {
                 builder.append(String.format("<snippets>%s</snippets>\n", snippetsBuilder.toString()));
             }
             String allCode = code.getText();
             // don't send license in java files
-            if(allCode.contains("package")) {
+            if (allCode.contains("package")) {
                 allCode = allCode.split("package")[1];
             }
             builder.append(String.format("<code>%s</code>\n", allCode));
 
         }
-        
-        for(String s: history.get(selectedTab)) {
+
+        for (String s : history.get(selectedTab)) {
             builder.append(s);
         }
-        
+
         return builder.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt)).toString();
         //System.out.println("prompt: " + userPrompt);
         //return userPrompt;
