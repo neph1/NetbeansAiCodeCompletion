@@ -34,7 +34,7 @@ public class OpenFileContextCollector {
 
     public static List<String> collectContextFromOpenFiles(JTextComponent currentComponent) throws IOException {
         List<String> contextSnippets = new ArrayList<>();
-
+        
         JavaSource currentSource = JavaSource.forDocument(currentComponent.getDocument());
 
         if (currentSource == null) {

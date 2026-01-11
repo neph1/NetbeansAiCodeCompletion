@@ -126,7 +126,11 @@ public class AiChatClient extends AICompletionClient {
                 builder.append(String.format("<snippets>%s</snippets>\n", snippetsBuilder.toString()));
             }
             String allCode = code.getText();
-            builder.append(String.format("<code>%s</code>\n", allCode.split("package")[1]));
+            // don't send license in java files
+            if(allCode.contains("package")) {
+                allCode = allCode.split("package")[1];
+            }
+            builder.append(String.format("<code>%s</code>\n", allCode));
 
         }
         

@@ -2,5 +2,5 @@ Manifest-Version: 1.0
 AutoUpdate-Show-In-Client: true
 OpenIDE-Module: com.mindemia.aicodecompletion
 OpenIDE-Module-Localizing-Bundle: com/mindemia/codeinsert/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.7.7
+OpenIDE-Module-Specification-Version: 1.7.8
 
