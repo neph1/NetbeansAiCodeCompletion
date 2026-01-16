@@ -1,10 +1,11 @@
 # AiCodeCompletion
-AI Code Completion plugin for Netbeans IDE (Like copilot, but more primivite)
+Non-intrusive AI Code Completion plugin for Netbeans IDE (Like copilot, but more primivite)
 
 Features:
-* Simple fill-in-the-middle (using netbeans code completion)
+* Simple fill-in-the-middle Ctrl+Shit+A
 * Instruction based. Ctrl+Shift+G to bring up dialog
-* Chat with code (active file) appended
+* Chat with code (active file + simplified imports) appended
+* reposiory.md reading for chat. Put relevant info here.
 
 (Tool usage with code insertion is wip, but not working atm)
 
