@@ -11,6 +11,7 @@ import com.mindemia.codeinsert.tools.EditorUtils;
 import com.mindemia.codeinsert.tools.ToolJsonBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -90,31 +91,35 @@ public class AiChatClient extends AICompletionClient {
         super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, new ToolJsonBuilder().createToolsTemplate());
     }
 
-    public String fetchSuggestion(String selectedTab, String prompt, List<String> selectedContext) {
+    public String fetchSuggestion(String selectedTab, String prompt, Map<String, JTextComponent> selectedContext) {
         var list = history.getOrDefault(selectedTab, new ArrayList<>());
         list.add(String.format(singleUser, prompt));
         history.put(selectedTab, list);
         JTextComponent focusedComponent = EditorUtils.getActiveTextComponent().orElse(null);
 
         final String context = constructChatPrompt(selectedTab, focusedComponent, prompt, selectedContext);
+
         final String response = super.fetchSuggestion(context, "");
         list.add(String.format(singleAssistant, response));
         history.put(selectedTab, list);
         return response;
     }
 
-    private String constructChatPrompt(String selectedTab, JTextComponent code, String userPrompt, List<String> selectedContext) {
+    private String constructChatPrompt(String selectedName, JTextComponent selectedTab, String userPrompt, Map<String, JTextComponent> selectedContext) {
+        selectedContext.remove(selectedName);
         StringBuilder builder = new StringBuilder();
         try {
             String repository = new String(Files.readAllBytes(Paths.get("repository.md")));
             builder.append(String.format("<repository>%s</repository>\n", repository));
+        } catch (NoSuchFileException ex) {
+            // fail silentry
         } catch (IOException ex) {
             Exceptions.printStackTrace(ex);
         }
-        if (code != null) {
+        if (selectedTab != null) {
             StringBuilder snippetsBuilder = new StringBuilder();
             try {
-                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code, selectedContext);
+                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(selectedTab, selectedContext.keySet());
 
                 for (String s : snippets) {
                     snippetsBuilder.append(s);
@@ -125,22 +130,35 @@ public class AiChatClient extends AICompletionClient {
             if (!snippetsBuilder.isEmpty()) {
                 builder.append(String.format("<snippets>%s</snippets>\n", snippetsBuilder.toString()));
             }
-            String allCode = code.getText();
-            // don't send license in java files
-            if (allCode.contains("package")) {
-                allCode = allCode.split("package")[1];
-            }
-            builder.append(String.format("<code>%s</code>\n", allCode));
+            builder.append("<code>");
+            selectedContext.forEach( (name, tab) -> {
+                String code = getCode(tab);
+                builder.append(String.format("%s:\n%s\n", name, code));
+            });
+            
+            String code = getCode(selectedTab);
+            builder.append(String.format("%s:\n%s\n", selectedName, code));
+            builder.append("</code>");
+            
 
         }
 
-        for (String s : history.get(selectedTab)) {
+        for (String s : history.get(selectedName)) {
             builder.append(s);
         }
 
         return builder.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt)).toString();
         //System.out.println("prompt: " + userPrompt);
         //return userPrompt;
+    }
+
+    private String getCode(JTextComponent tab) {
+        String allCode = tab.getText();
+        // don't send license in java files
+        if (allCode.contains("package")) {
+            allCode = allCode.split("package")[1];
+        }
+        return allCode;
     }
 
 }

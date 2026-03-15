@@ -16,6 +16,7 @@ import com.sun.source.tree.Tree;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
@@ -32,7 +33,7 @@ import org.openide.loaders.DataObjectNotFoundException;
 
 public class OpenFileContextCollector {
 
-    public static List<String> collectContextFromOpenFiles(JTextComponent currentComponent, List<String> selectedContext) throws IOException {
+    public static List<String> collectContextFromOpenFiles(JTextComponent currentComponent, Set<String> selectedContext) throws IOException {
         List<String> contextSnippets = new ArrayList<>();
 
         JavaSource currentSource = JavaSource.forDocument(currentComponent.getDocument());

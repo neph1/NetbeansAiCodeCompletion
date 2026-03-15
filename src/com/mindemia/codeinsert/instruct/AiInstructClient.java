@@ -10,6 +10,8 @@ import com.mindemia.codeinsert.OpenFileContextCollector;
 import com.mindemia.codeinsert.tools.EditorUtils;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.swing.text.JTextComponent;
 import org.openide.util.Exceptions;
 import org.openide.util.NbPreferences;
@@ -50,7 +52,7 @@ public class AiInstructClient extends AICompletionClient{
         if(code != null) {
             StringBuilder snippetsBuilder = new StringBuilder();
             try {
-                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code, List.of());
+                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code, Set.of());
                 
                 
                 for(String s: snippets) {

@@ -3,19 +3,16 @@ package com.mindemia.codeinsert.chat;
 import com.mindemia.codeinsert.tools.EditorUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.TextComponent;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -28,19 +25,18 @@ import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
-import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
-import org.netbeans.api.editor.EditorRegistry;
 import org.netbeans.modules.editor.NbEditorUtilities;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
+import org.openide.filesystems.FileObject;
 import org.openide.loaders.DataObject;
-import org.openide.text.NbDocument;
+import org.openide.util.Pair;
 import org.openide.windows.TopComponent;
 
 @TopComponent.Description(
@@ -59,6 +55,7 @@ public class AIChatTopComponent extends TopComponent {
     private final JButton addChatButton = new JButton("Add Chat");
     private final AiChatClient aiChatClient;
 
+    private Map<String, JTextComponent> openTabs;
     private JList<String> openTabsList;
     private DefaultListModel<String> listModel;
 
@@ -262,28 +259,30 @@ public class AIChatTopComponent extends TopComponent {
     private void refreshOpenTabsList() {
         listModel.clear();
 
-        List<String> openTabs = getContextTabs();
-        for (String tab : openTabs) {
+        this.openTabs = getContextTabs();
+        Set<String> tabNames = openTabs.keySet();
+        for (String tab : tabNames) {
             listModel.addElement(tab);
         }
     }
 
-    private List<String> getContextTabs() {
-        List<? extends JTextComponent> openTabs = EditorUtils.getOpenTextComponents();
-        List<String> tabNames = new ArrayList<>();
-        for (JTextComponent tab : openTabs) {
+    private Map<String, JTextComponent> getContextTabs() {
+        List<? extends JTextComponent> tabs = EditorUtils.getOpenTextComponents();
+        Map<String, JTextComponent> tabNames = new HashMap<>();
+        for (JTextComponent tab : tabs) {
             
             Document doc = tab.getDocument();
+            
             DataObject dataObject = NbEditorUtilities.getDataObject(doc);
-            tabNames.add(dataObject.getPrimaryFile().getName());
+            tabNames.put(dataObject.getPrimaryFile().getName(), tab);
         }
         return tabNames;
     }
 
-    private List<String> getSelectedTabs() {
-        List<String> selectedTabs = new ArrayList<>();
+    private Map<String, JTextComponent> getSelectedTabs() {
+        Map<String, JTextComponent> selectedTabs = new HashMap<>();
         for (String s : openTabsList.getSelectedValuesList()) {
-            selectedTabs.add(s);
+            selectedTabs.put(s, openTabs.get(s));
         }
         return selectedTabs;
     }
