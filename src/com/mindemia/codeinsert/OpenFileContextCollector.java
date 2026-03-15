@@ -32,9 +32,9 @@ import org.openide.loaders.DataObjectNotFoundException;
 
 public class OpenFileContextCollector {
 
-    public static List<String> collectContextFromOpenFiles(JTextComponent currentComponent) throws IOException {
+    public static List<String> collectContextFromOpenFiles(JTextComponent currentComponent, List<String> selectedContext) throws IOException {
         List<String> contextSnippets = new ArrayList<>();
-        
+
         JavaSource currentSource = JavaSource.forDocument(currentComponent.getDocument());
 
         if (currentSource == null) {
@@ -44,18 +44,20 @@ public class OpenFileContextCollector {
 
         currentSource.runUserActionTask(controller -> {
             controller.toPhase(JavaSource.Phase.ELEMENTS_RESOLVED);
-            
 
             CompilationUnitTree cut = controller.getCompilationUnit();
             String currentPackage = cut.getPackageName().toString();
             Elements elements = controller.getElements();
-            
-            var imports2 = cut.getImports();
+
+            var imports = cut.getImports();
             // Classes in same package 
 
             PackageElement pkg = elements.getPackageElement(currentPackage);
             for (Element e : pkg.getEnclosedElements()) {
                 // GOTCHA: Comparing class names
+                if (selectedContext.contains(e.getSimpleName().toString())) {
+                    continue;
+                }
                 if ((!currentFile.getName().equals(e.getSimpleName().toString()) && (e.getKind().isClass()) || e.getKind().isInterface())) {
                     FileObject fileObject = SourceUtils.getFile(ElementHandle.create((TypeElement) e), controller.getClasspathInfo());
                     if (fileObject != null) {
@@ -64,21 +66,26 @@ public class OpenFileContextCollector {
                     }
                 }
             }
-            
+
             // Imported classes
-            for (ImportTree importTree : imports2) {
+            for (ImportTree importTree : imports) {
                 String fqn = importTree.getQualifiedIdentifier().toString();
+
                 TypeElement type = elements.getTypeElement(fqn);
                 if (type != null) {
+
+                    if (selectedContext.contains(type.getSimpleName().toString())) {
+                        continue;
+                    }
                     FileObject fileObject = SourceUtils.getFile(ElementHandle.create(type), controller.getClasspathInfo());
-                    
+
                     if (fileObject == null) {
                         for (FileObject curRoot : GlobalPathRegistry.getDefault().getSourceRoots()) {
                             fileObject = curRoot.getFileObject(controller.getClasspathInfo().toString());
                             break;
                         }
                     }
-                    
+
                     if (fileObject != null) {
                         contextSnippets.addAll(getContents(getDocument(fileObject)));
                     }
@@ -88,7 +95,7 @@ public class OpenFileContextCollector {
 
         return contextSnippets;
     }
-    
+
     private static Document getDocument(FileObject fileObject) throws DataObjectNotFoundException, IOException {
         DataObject dob = DataObject.find(fileObject);
         EditorCookie ec = dob.getLookup().lookup(EditorCookie.class);
@@ -111,7 +118,6 @@ public class OpenFileContextCollector {
             if (cu == null) {
                 return;
             }
-
 
             contextSnippets.addAll(extractContent(cu));
 

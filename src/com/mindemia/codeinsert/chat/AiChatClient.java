@@ -90,19 +90,20 @@ public class AiChatClient extends AICompletionClient {
         super(API_URL, API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, new ToolJsonBuilder().createToolsTemplate());
     }
 
-    public String fetchSuggestion(String selectedTab, String prompt) {
+    public String fetchSuggestion(String selectedTab, String prompt, List<String> selectedContext) {
         var list = history.getOrDefault(selectedTab, new ArrayList<>());
         list.add(String.format(singleUser, prompt));
         history.put(selectedTab, list);
         JTextComponent focusedComponent = EditorUtils.getActiveTextComponent().orElse(null);
 
-        final String response = super.fetchSuggestion(constructChatPrompt(selectedTab, focusedComponent, prompt), toolChoice);
+        final String context = constructChatPrompt(selectedTab, focusedComponent, prompt, selectedContext);
+        final String response = super.fetchSuggestion(context, "");
         list.add(String.format(singleAssistant, response));
         history.put(selectedTab, list);
         return response;
     }
 
-    private String constructChatPrompt(String selectedTab, JTextComponent code, String userPrompt) {
+    private String constructChatPrompt(String selectedTab, JTextComponent code, String userPrompt, List<String> selectedContext) {
         StringBuilder builder = new StringBuilder();
         try {
             String repository = new String(Files.readAllBytes(Paths.get("repository.md")));
@@ -113,7 +114,7 @@ public class AiChatClient extends AICompletionClient {
         if (code != null) {
             StringBuilder snippetsBuilder = new StringBuilder();
             try {
-                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code);
+                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code, selectedContext);
 
                 for (String s : snippets) {
                     snippetsBuilder.append(s);

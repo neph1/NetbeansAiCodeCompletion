@@ -50,7 +50,7 @@ public class AiInstructClient extends AICompletionClient{
         if(code != null) {
             StringBuilder snippetsBuilder = new StringBuilder();
             try {
-                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code);
+                List<String> snippets = OpenFileContextCollector.collectContextFromOpenFiles(code, List.of());
                 
                 
                 for(String s: snippets) {

@@ -1,22 +1,28 @@
 package com.mindemia.codeinsert.chat;
 
+import com.mindemia.codeinsert.tools.EditorUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.TextComponent;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
@@ -24,10 +30,17 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JViewport;
 import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.text.Document;
+import javax.swing.text.JTextComponent;
+import org.netbeans.api.editor.EditorRegistry;
+import org.netbeans.modules.editor.NbEditorUtilities;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
+import org.openide.loaders.DataObject;
+import org.openide.text.NbDocument;
 import org.openide.windows.TopComponent;
 
 @TopComponent.Description(
@@ -45,6 +58,9 @@ public class AIChatTopComponent extends TopComponent {
     private final JTabbedPane tabbedPane = new JTabbedPane();
     private final JButton addChatButton = new JButton("Add Chat");
     private final AiChatClient aiChatClient;
+
+    private JList<String> openTabsList;
+    private DefaultListModel<String> listModel;
 
     private final Color backgroundColor = UIManager.getColor("EditorPane.background");
     private final Color foregroundColor = UIManager.getColor("EditorPane.foreground");
@@ -66,7 +82,24 @@ public class AIChatTopComponent extends TopComponent {
         add(topPanel, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);
 
+        listModel = new DefaultListModel<>();
+        openTabsList = new JList<>(listModel);
+        openTabsList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        JScrollPane contextFilesSelector = new JScrollPane(openTabsList);
+        contextFilesSelector.setName("Extra context");
+        contextFilesSelector.setPreferredSize(new Dimension(200, 80));
+
+        topPanel.add(contextFilesSelector, BorderLayout.SOUTH);
+
+        JButton refreshButton = new JButton("Refresh files");
+        refreshButton.addActionListener((ActionEvent e) -> {
+            refreshOpenTabsList();
+        });
+        topPanel.add(refreshButton, BorderLayout.WEST);
+
         aiChatClient = new AiChatClient();
+
     }
 
     private void addNewChatArea() {
@@ -87,7 +120,9 @@ public class AIChatTopComponent extends TopComponent {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String prompt = inputArea.getText().trim();
-                if (prompt.isEmpty()) return;
+                if (prompt.isEmpty()) {
+                    return;
+                }
 
                 addMessageComponent(messagePanel, userPrompt, prompt, false);
                 var list = chatHistory.getOrDefault(tabbedPane.getSelectedComponent().getName(), new ArrayList<>());
@@ -110,7 +145,7 @@ public class AIChatTopComponent extends TopComponent {
 
         tabbedPane.addTab("Chat " + (tabbedPane.getTabCount() + 1), chatPanel);
         tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, createTabComponent(tabbedPane, chatPanel));
-        
+
 //        insertTestMessage();
     }
 
@@ -133,7 +168,7 @@ public class AIChatTopComponent extends TopComponent {
     private void callAI(JPanel messagePanel, String prompt) {
         String selectedTab = tabbedPane.getSelectedComponent().getName();
         new Thread(() -> {
-            String response = aiChatClient.fetchSuggestion(selectedTab, prompt);
+            String response = aiChatClient.fetchSuggestion(selectedTab, prompt, getSelectedTabs());
             SwingUtilities.invokeLater(() -> {
                 addMessageComponent(messagePanel, aiPrompt, response, true);
                 var list = chatHistory.getOrDefault(selectedTab, new ArrayList<>());
@@ -189,7 +224,6 @@ public class AIChatTopComponent extends TopComponent {
             }
         }
 
-        // If message ends in code block
         if (codeBuffer.length() > 0) {
             addCodeBlock(container, codeBuffer.toString());
         }
@@ -206,9 +240,8 @@ public class AIChatTopComponent extends TopComponent {
         codeArea.setLineWrap(false);
 
         JScrollPane scrollPane = new JScrollPane(codeArea);
-        scrollPane.setMaximumSize(new Dimension(getWidth(), 500)); // Let it expand horizontally
+        scrollPane.setMaximumSize(new Dimension(getWidth(), 500));
         scrollPane.setPreferredSize(new Dimension(150, scrollPane.getPreferredSize().height));
-
 
         JButton copyButton = new JButton("Copy");
         copyButton.setMaximumSize(new Dimension(200, 100));
@@ -225,57 +258,34 @@ public class AIChatTopComponent extends TopComponent {
 
         container.add(codePanel);
     }
-    
-    public void insertTestMessage() {
-        Component selected = tabbedPane.getSelectedComponent();
-        if (!(selected instanceof JPanel)) return;
 
-        JPanel chatPanel = (JPanel) selected;
-        JScrollPane scrollPane = (JScrollPane) chatPanel.getComponent(0); // CENTER
-        JViewport viewport = scrollPane.getViewport();
-        JPanel messagePanel = (JPanel) viewport.getView();
+    private void refreshOpenTabsList() {
+        listModel.clear();
 
-        String testMessage = """
-            Here is some explanation text before the code block.
+        List<String> openTabs = getContextTabs();
+        for (String tab : openTabs) {
+            listModel.addElement(tab);
+        }
+    }
 
-            ```
-            private void tryRenderMessage(JTextPane chatArea, String text) throws BadLocationException, IOException {
-                HTMLEditorKit editorKit = (HTMLEditorKit) chatArea.getEditorKit();
-                HTMLDocument document = (HTMLDocument) chatArea.getDocument();
-                boolean inCodeBlock = false;
-                StringBuilder codeBlockContent = new StringBuilder();
-                String[] lines = text.split("\n");
+    private List<String> getContextTabs() {
+        List<? extends JTextComponent> openTabs = EditorUtils.getOpenTextComponents();
+        List<String> tabNames = new ArrayList<>();
+        for (JTextComponent tab : openTabs) {
             
-                for (String line : lines) {
-                    if (line.trim().startsWith("```")) {
-                        if (inCodeBlock) {
-                            // End of code block
-                            editorKit.insertHTML(document, document.getLength(), codeBlockContent.toString(), 0, 0, null);
-                            editorKit.insertHTML(document, document.getLength(), "</pre>", 0, 0, null);
-                            editorKit.insertHTML(document, document.getLength(), "<button onclick=\"copyCode(this)\">Copy Code</button>", 0, 0, null);
-                            editorKit.insertHTML(document, document.getLength(), "<script>function copyCode(button) {var code = button.previousSibling.innerText; navigator.clipboard.writeText(code);}</script>", 0, 0, null);
-                        } else {
-                            // Start of code block
-                            editorKit.insertHTML(document, document.getLength(), "<pre style='background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;'>", 0, 0, null);
-                            codeBlockContent.setLength(0); // Clear the content
-                        }
-                        inCodeBlock = !inCodeBlock;
-                        continue;
-                    }
-            
-                    if (inCodeBlock) {
-                        codeBlockContent.append(line).append("<br>");
-                    } else {
-                        editorKit.insertHTML(document, document.getLength(), line + "<br>", 0, 0, null);
-                    }
-                }
-            }
-            ```
+            Document doc = tab.getDocument();
+            DataObject dataObject = NbEditorUtilities.getDataObject(doc);
+            tabNames.add(dataObject.getPrimaryFile().getName());
+        }
+        return tabNames;
+    }
 
-            And here is some text after the code block.
-            """;
-
-        addMessageComponent(messagePanel, aiPrompt, testMessage, true);
+    private List<String> getSelectedTabs() {
+        List<String> selectedTabs = new ArrayList<>();
+        for (String s : openTabsList.getSelectedValuesList()) {
+            selectedTabs.add(s);
+        }
+        return selectedTabs;
     }
 
 }
