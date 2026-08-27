@@ -34,9 +34,7 @@ import javax.swing.text.JTextComponent;
 import org.netbeans.modules.editor.NbEditorUtilities;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
-import org.openide.filesystems.FileObject;
 import org.openide.loaders.DataObject;
-import org.openide.util.Pair;
 import org.openide.windows.TopComponent;
 
 @TopComponent.Description(
@@ -102,6 +100,7 @@ public class AIChatTopComponent extends TopComponent {
     private void addNewChatArea() {
         JPanel messagePanel = new JPanel();
         messagePanel.setLayout(new BoxLayout(messagePanel, BoxLayout.Y_AXIS));
+
         JScrollPane scrollPane = new JScrollPane(messagePanel);
 
         JTextArea inputArea = new JTextArea();
@@ -120,11 +119,11 @@ public class AIChatTopComponent extends TopComponent {
                 if (prompt.isEmpty()) {
                     return;
                 }
-
-                addMessageComponent(messagePanel, userPrompt, prompt, false);
-                var list = chatHistory.getOrDefault(tabbedPane.getSelectedComponent().getName(), new ArrayList<>());
+                String tabName = tabbedPane.getSelectedComponent().getName();
+                addMessageComponent(messagePanel, userPrompt, prompt, false, backgroundColor.darker());
+                var list = chatHistory.getOrDefault(tabName, new ArrayList<>());
                 list.add(new ChatMessage(ChatMessage.Role.USER, prompt));
-                chatHistory.put(tabbedPane.getSelectedComponent().getName(), list);
+                chatHistory.put(tabName, list);
 
                 callAI(messagePanel, prompt);
                 inputArea.setText("");
@@ -143,7 +142,6 @@ public class AIChatTopComponent extends TopComponent {
         tabbedPane.addTab("Chat " + (tabbedPane.getTabCount() + 1), chatPanel);
         tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, createTabComponent(tabbedPane, chatPanel));
 
-//        insertTestMessage();
     }
 
     private JPanel createTabComponent(JTabbedPane tabbedPane, JPanel chatPanel) {
@@ -167,21 +165,22 @@ public class AIChatTopComponent extends TopComponent {
         new Thread(() -> {
             String response = aiChatClient.fetchSuggestion(selectedTab, prompt, getSelectedTabs());
             SwingUtilities.invokeLater(() -> {
-                addMessageComponent(messagePanel, aiPrompt, response, true);
+                addMessageComponent(messagePanel, aiPrompt, response, true, backgroundColor.darker().darker());
                 var list = chatHistory.getOrDefault(selectedTab, new ArrayList<>());
                 list.add(new ChatMessage(ChatMessage.Role.ASSISTANT, response));
-                chatHistory.put(tabbedPane.getSelectedComponent().getName(), list);
+                chatHistory.put(selectedTab, list);
             });
         }).start();
     }
-
-    private void addMessageComponent(JPanel container, String prefix, String content, boolean parseCodeBlocks) {
+    
+    private void addMessageComponent(JPanel container, String prefix, String content, boolean parseCodeBlocks, Color background) {
         if (!parseCodeBlocks) {
             JLabel label = new JLabel("<html><b>" + prefix + "</b> " + content.replace("\n", "<br>") + "</html>");
             label.setOpaque(true);
-            label.setBackground(backgroundColor.darker());
+            label.setBackground(background);
             label.setForeground(foregroundColor);
             label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            label.setAlignmentX(0f);
             container.add(label);
             container.revalidate();
             return;
@@ -193,9 +192,10 @@ public class AIChatTopComponent extends TopComponent {
         if (!prefix.isEmpty()) {
             JLabel label = new JLabel("<html><b>" + prefix + "</b></html>");
             label.setOpaque(true);
-            label.setBackground(backgroundColor.darker());
+            label.setBackground(background);
             label.setForeground(foregroundColor);
             label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            label.setAlignmentX(0f);
             container.add(label);
         }
 
@@ -214,9 +214,10 @@ public class AIChatTopComponent extends TopComponent {
             } else {
                 JLabel label = new JLabel(line);
                 label.setOpaque(true);
-                label.setBackground(backgroundColor.darker());
+                label.setBackground(background);
                 label.setForeground(foregroundColor);
                 label.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+                label.setAlignmentX(0f);
                 container.add(label);
             }
         }
@@ -270,9 +271,9 @@ public class AIChatTopComponent extends TopComponent {
         List<? extends JTextComponent> tabs = EditorUtils.getOpenTextComponents();
         Map<String, JTextComponent> tabNames = new HashMap<>();
         for (JTextComponent tab : tabs) {
-            
+
             Document doc = tab.getDocument();
-            
+
             DataObject dataObject = NbEditorUtilities.getDataObject(doc);
             tabNames.put(dataObject.getPrimaryFile().getName(), tab);
         }
