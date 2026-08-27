@@ -104,12 +104,12 @@ public class AiChatClient extends AICompletionClient {
         history.put(selectedTab, list);
         return response;
     }
-
+    
     private String constructChatPrompt(String selectedName, JTextComponent selectedTab, String userPrompt, Map<String, JTextComponent> selectedContext) {
         selectedContext.remove(selectedName);
         StringBuilder builder = new StringBuilder();
         try {
-            String repository = new String(Files.readAllBytes(Paths.get("repository.md")));
+            String repository = new String(Files.readAllBytes(Paths.get("AGENTS.md")));
             builder.append(String.format("<repository>%s</repository>\n", repository));
         } catch (NoSuchFileException ex) {
             // fail silentry
@@ -146,12 +146,14 @@ public class AiChatClient extends AICompletionClient {
         for (String s : history.get(selectedName)) {
             builder.append(s);
         }
+        
+        builder.append(String.format("\n\n%s\n\n", userPrompt));
 
-        return builder.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt)).toString();
+        return builder.toString();//.append(String.format(chatTemplate, SYSTEM_PROMPT.replace("\"", "\\\""), userPrompt)).toString();
         //System.out.println("prompt: " + userPrompt);
         //return userPrompt;
     }
-
+    
     private String getCode(JTextComponent tab) {
         String allCode = tab.getText();
         // don't send license in java files

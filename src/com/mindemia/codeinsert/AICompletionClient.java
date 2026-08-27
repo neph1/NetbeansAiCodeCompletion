@@ -8,15 +8,17 @@ package com.mindemia.codeinsert;
  *
  * @author rickard
  */
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class AICompletionClient {
     private final String API_URL;
@@ -43,33 +45,28 @@ public abstract class AICompletionClient {
     }
 
     public String fetchSuggestion(String prompt, String toolChoice) {
-        
         try {
-            ArrayNode messages = objectMapper.createArrayNode();
-            ObjectNode message = objectMapper.createObjectNode();
-            message.put("role", "user");
-            message.put("content", prompt);
-            messages.add(message);
-            
-            ObjectNode requestBody = objectMapper.createObjectNode();
-            requestBody.put("model", MODEL);
-            requestBody.set("messages", messages);
-            
-            if (tools != null) {
-                requestBody.set("tools", tools);
-            }
-            requestBody.put("max_tokens", MAX_TOKENS);
+            List<ChatMessage> messages = new ArrayList<>();
+            messages.add(new ChatMessage("system", systemPrompt));
+            messages.add(new ChatMessage("user", prompt));
 
-            // Convert to JSON string
-            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            ChatCompletionRequest request = new ChatCompletionRequest(
+                MODEL,
+                messages,
+                tools,
+                MAX_TOKENS
+            );
 
-            HttpRequest request = HttpRequest.newBuilder()
+            String jsonRequest = objectMapper.writeValueAsString(request);
+
+            HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(API_URL))
                     .header("Authorization", "Bearer " + API_KEY)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonRequest, StandardCharsets.UTF_8))
                     .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             return responseParser.parseResponse(response.body());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -77,4 +74,33 @@ public abstract class AICompletionClient {
         }
     }
 
+    private static class ChatMessage {
+        @JsonProperty("role")
+        public String role;
+        @JsonProperty("content")
+        public String content;
+
+        public ChatMessage(String role, String content) {
+            this.role = role;
+            this.content = content;
+        }
+    }
+
+    private static class ChatCompletionRequest {
+        @JsonProperty("model")
+        public String model;
+        @JsonProperty("messages")
+        public List<ChatMessage> messages;
+        @JsonProperty("tools")
+        public ArrayNode tools;
+        @JsonProperty("max_tokens")
+        public int max_tokens;
+
+        public ChatCompletionRequest(String model, List<ChatMessage> messages, ArrayNode tools, int max_tokens) {
+            this.model = model;
+            this.messages = messages;
+            this.tools = tools;
+            this.max_tokens = max_tokens;
+        }
+    }
 }
