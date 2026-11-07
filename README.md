@@ -6,7 +6,7 @@ Features:
 * Instruction based. Ctrl+Shift+G to bring up dialog
 * Chat with code (active file + simplified imports) appended
 * Chat with multiple files selected
-* repository.md reading for chat. Put relevant info here.
+* AGENTS.md reading for chat. Put relevant project info here.
 
 (Tool usage with code insertion is wip, but not working atm)
 
