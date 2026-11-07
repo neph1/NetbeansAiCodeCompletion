@@ -8,7 +8,7 @@ Features:
 * Chat with multiple files selected
 * AGENTS.md reading for chat. Put relevant project info here.
 
-(Tool usage with code insertion is wip, but not working atm)
+Tool usage was WIP, but has been abandoned. For complex multi file work, use agents.
 
 [NBM file available here]([https://github.com/neph1/AiCodeCompletion/blob/main/build/com-mindemia-aicodecompletion.nbm](https://github.com/neph1/NetbeansAiCodeCompletion/blob/main/com-mindemia-aicodecompletion.nbm)) (unsigned): 
 
